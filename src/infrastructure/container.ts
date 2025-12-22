@@ -26,6 +26,7 @@ import { LocalKpiRepository } from './repositories/localKpiRepository';
 import { LocalLeadRepository } from './repositories/localLeadRepository';
 import { LocalSessionRepository } from './repositories/localSessionRepository';
 import { LocalSettingsRepository } from './repositories/localSettingsRepository';
+import { LocalMarketEventRepository } from './repositories/localMarketEventRepository';
 import { OutboxDexieRepository } from './repositories/outboxRepository';
 import { seedDatabase } from './storage/seedData';
 
@@ -44,6 +45,7 @@ export async function buildContainer() {
   const clientRepo = new LocalClientRepository();
   const settingsRepo = new LocalSettingsRepository();
   const leadRepo = new LocalLeadRepository();
+  const marketEventRepo = new LocalMarketEventRepository();
 
   return {
     repos: {
@@ -56,7 +58,8 @@ export async function buildContainer() {
       employeeRepo,
       clientRepo,
       settingsRepo,
-      leadRepo
+      leadRepo,
+      marketEventRepo
     },
     usecases: {
       listJobs: new ListJobsForEmployee(jobRepo),

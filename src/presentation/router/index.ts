@@ -11,6 +11,7 @@ import '../pages/clients-page';
 import '../pages/help-page';
 import '../pages/settings-page';
 import '../pages/calendar-page';
+import '../pages/market-page';
 
 import { Router } from '@vaadin/router';
 
@@ -20,6 +21,7 @@ export function createRouter(outlet: Element) {
     { path: '/', redirect: '/dashboard' },
     { path: '/dashboard', component: 'home-page' },
     { path: '/calendar', component: 'calendar-page' },
+    { path: '/market', component: 'market-page' },
     { path: '/jobs', component: 'jobs-page' },
     { path: '/jobs/:id', component: 'job-detail-page' },
     { path: '/jobs/:id/evidence', component: 'evidence-page' },

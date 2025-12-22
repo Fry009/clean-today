@@ -5,6 +5,7 @@ import {
   Evidence,
   KPI,
   Lead,
+  MarketEvent,
   ServiceJob
 } from '@core/entities/types';
 import { PendingOperation } from '@core/ports/repositories';
@@ -20,10 +21,11 @@ export class AppDatabase extends Dexie {
   outbox!: Table<PendingOperation, string>;
   leads!: Table<Lead, string>;
   settings!: Table<{ id: string; value: unknown }, string>;
+  marketEvents!: Table<MarketEvent, string>;
 
   constructor() {
     super('clean-today-db');
-    this.version(2)
+    this.version(3)
       .stores({
         jobs: 'id, employeeId, status',
         employees: 'id',
@@ -33,7 +35,8 @@ export class AppDatabase extends Dexie {
         kpis: '++id, employeeId',
         outbox: 'id, type',
         leads: 'id, status, source, type',
-        settings: 'id'
+        settings: 'id',
+        marketEvents: 'id, portal, createdAt'
       })
       .upgrade(async (tx) => {
         await tx.table('jobs').clear();

@@ -7,6 +7,7 @@ import {
   KPI,
   Lead,
   LeadStatus,
+  MarketEvent,
   PremiumPlan,
   ServiceJob
 } from '../entities/types';
@@ -59,6 +60,12 @@ export interface LeadRepository {
   bulkSave(leads: Lead[]): Promise<void>;
   markStatus(id: string, status: LeadStatus): Promise<Lead | undefined>;
   convertToJob(id: string, job: ServiceJob): Promise<void>;
+}
+
+export interface MarketEventRepository {
+  add(event: MarketEvent): Promise<void>;
+  list(): Promise<MarketEvent[]>;
+  clear(): Promise<void>;
 }
 
 export interface SettingsRepository {

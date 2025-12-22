@@ -1,7 +1,18 @@
-import { ChecklistItem, Client, Employee, FeatureFlag, KPI, Lead, ServiceJob } from '@core/entities/types';
+import {
+  ChecklistItem,
+  Client,
+  Employee,
+  FeatureFlag,
+  KPI,
+  Lead,
+  MarketEvent,
+  MarketPortal,
+  ServiceJob
+} from '@core/entities/types';
 import { AppSettings } from '@core/ports/repositories';
 import { buildContainer } from '@infrastructure/container';
 import { log } from '@shared/logger';
+import { v4 as uuid } from 'uuid';
 
 type Listener = (state: AppState) => void;
 
@@ -12,6 +23,7 @@ export interface AppState {
   clients: Client[];
   kpis: KPI[];
   leads: Lead[];
+  marketEvents: MarketEvent[];
   settings: AppSettings;
   flags?: FeatureFlag;
   syncing: boolean;
@@ -24,6 +36,7 @@ let state: AppState = {
   clients: [],
   kpis: [],
   leads: [],
+  marketEvents: [],
   syncing: false,
   settings: { theme: 'light', language: 'es', demoMode: true, accent: 'ocean', plan: 'FREE' }
 };
@@ -57,8 +70,9 @@ export async function initStore() {
   const leads = await container.usecases.listLeads.execute();
   const settings = await container.repos.settingsRepo.getSettings();
   const flags = await container.repos.flagRepo.getPlan('emp-1');
+  const marketEvents = await container.repos.marketEventRepo.list();
   applyAccentClass(settings.accent);
-  setState({ ready: true, employee, jobs, clients, kpis, leads, settings, flags });
+  setState({ ready: true, employee, jobs, clients, kpis, leads, settings, flags, marketEvents });
 }
 
 export async function startCheckIn(jobId: string) {
@@ -217,6 +231,44 @@ export async function listClients() {
   const clients = await container.repos.clientRepo.list();
   setState({ clients });
   return clients;
+}
+
+export async function trackMarketEvent(event: {
+  portal: MarketPortal;
+  query: string;
+  location?: string | null;
+  category?: string | null;
+  outboundUrl: string;
+}) {
+  const container = await containerPromise!;
+  const created: MarketEvent = {
+    id: uuid(),
+    type: 'portal_search_click',
+    portal: event.portal,
+    query: event.query,
+    location: event.location ?? null,
+    category: event.category ?? null,
+    outboundUrl: event.outboundUrl,
+    source: 'market',
+    createdAt: new Date().toISOString()
+  };
+  await container.repos.marketEventRepo.add(created);
+  const marketEvents = await container.repos.marketEventRepo.list();
+  setState({ marketEvents });
+  return created;
+}
+
+export async function listMarketEvents() {
+  const container = await containerPromise!;
+  const marketEvents = await container.repos.marketEventRepo.list();
+  setState({ marketEvents });
+  return marketEvents;
+}
+
+export async function clearMarketEvents() {
+  const container = await containerPromise!;
+  await container.repos.marketEventRepo.clear();
+  setState({ marketEvents: [] });
 }
 
 export async function addClient(input: { name: string; address?: string; notes?: string }) {

@@ -84,6 +84,7 @@ export class AppRoot extends LitElement {
   private headerTitle(path: string) {
     if (path === '/' || path.startsWith('/dashboard')) return 'Dashboard';
     if (path.startsWith('/calendar')) return 'Calendario';
+    if (path.startsWith('/market')) return 'Market';
     if (path.startsWith('/leads')) return 'Mercado';
     if (path.startsWith('/kpis')) return 'KPIs';
     if (path.startsWith('/jobs')) return 'Jobs';

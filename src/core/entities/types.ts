@@ -117,3 +117,17 @@ export interface Lead {
 
 export type LeadSource = 'milanuncios' | 'indeed' | 'jobtoday' | 'domestiko' | 'otros';
 export type LeadStatus = 'unhandled' | 'saved' | 'discarded';
+
+export type MarketPortal = 'milanuncios' | 'infojobs' | 'indeed' | 'linkedin';
+
+export interface MarketEvent {
+  id: string;
+  type: 'portal_search_click';
+  portal: MarketPortal;
+  query: string;
+  location: string | null;
+  category: string | null;
+  outboundUrl: string;
+  source: 'market';
+  createdAt: string;
+}
