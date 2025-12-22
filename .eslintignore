@@ -1,0 +1,5 @@
+dist
+node_modules
+pwa-*.js
+*.config.js
+*.config.cjs

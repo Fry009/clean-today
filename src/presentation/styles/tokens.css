@@ -1,0 +1,85 @@
+:root {
+  /* Base (Light) */
+  --bg0: #ffffff;
+  --bg1: #f7f6f4;
+  --surface: #ffffff;
+  --surface-strong: #fbfbfa;
+  --border: rgba(28, 28, 28, 0.09);
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-soft: 0 1px 1px rgba(15, 23, 42, 0.04);
+  --shadow-strong: 0 8px 24px rgba(15, 23, 42, 0.10);
+  --text: #1c1c1c;
+  --muted: rgba(28, 28, 28, 0.62);
+  --primary0: #1aa36f; /* WhatsApp-like green/teal */
+  --primary1: #2b76d2; /* muted blue */
+  --danger: #e05d5d;
+  --success: #22a06b;
+  --warning: #f59e0b;
+
+  /* Aliases used across the app */
+  --bg-gradient-start: var(--bg0);
+  --bg-gradient-end: var(--bg1);
+  --card-bg: var(--surface);
+  --card-border: var(--border);
+  --card-shadow: var(--shadow);
+  --text-strong: var(--text);
+  --text-muted: var(--muted);
+  --primary-start: var(--primary0);
+  --primary-end: var(--primary1);
+  --accent: var(--primary0);
+  --accent-strong: color-mix(in srgb, var(--accent) 88%, black 12%);
+  --accent-weak: color-mix(in srgb, var(--accent) 16%, white 84%);
+  --ring: color-mix(in srgb, var(--accent) 40%, transparent 60%);
+}
+
+[data-theme='dark'],
+.dark {
+  /* Force light theme visuals even if "dark" is toggled */
+  --bg0: #ffffff;
+  --bg1: #f7f6f4;
+  --surface: #ffffff;
+  --surface-strong: #fbfbfa;
+  --border: rgba(28, 28, 28, 0.09);
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-soft: 0 1px 1px rgba(15, 23, 42, 0.04);
+  --shadow-strong: 0 8px 24px rgba(15, 23, 42, 0.10);
+  --text: #1c1c1c;
+  --muted: rgba(28, 28, 28, 0.62);
+  --primary0: #1aa36f;
+  --primary1: #2b76d2;
+  --danger: #e05d5d;
+  --success: #22a06b;
+  --warning: #f59e0b;
+
+  --bg-gradient-start: var(--bg0);
+  --bg-gradient-end: var(--bg1);
+  --card-bg: var(--surface);
+  --card-border: var(--border);
+  --card-shadow: var(--shadow);
+  --text-strong: var(--text);
+  --text-muted: var(--muted);
+  --primary-start: var(--primary0);
+  --primary-end: var(--primary1);
+  --accent: var(--primary0);
+  --accent-strong: color-mix(in srgb, var(--accent) 88%, black 12%);
+  --accent-weak: color-mix(in srgb, var(--accent) 16%, white 84%);
+  --ring: color-mix(in srgb, var(--accent) 40%, transparent 60%);
+}
+
+.theme-ocean {
+  --primary0: #1aa36f;
+  --primary1: #2b76d2;
+  --accent: var(--primary0);
+}
+
+.theme-forest {
+  --primary0: #1aa36f;
+  --primary1: #2b76d2;
+  --accent: var(--primary0);
+}
+
+.theme-sunset {
+  --primary0: #1aa36f;
+  --primary1: #2b76d2;
+  --accent: var(--primary0);
+}

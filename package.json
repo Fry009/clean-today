@@ -1,0 +1,58 @@
+{
+  "name": "clean-today",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .ts,.tsx,.js --max-warnings=0",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:ui": "vitest",
+    "pwa:generate": "vite build --mode production",
+    "cap:sync": "pnpm build && npx cap sync"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.1.0",
+    "@vaadin/router": "^1.7.5",
+    "browser-image-compression": "^2.0.2",
+    "chart.js": "^4.4.1",
+    "dayjs": "^1.11.10",
+    "dexie": "^4.0.8",
+    "jspdf": "^2.5.1",
+    "lit": "^3.1.3",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.0",
+    "@testing-library/dom": "^9.3.3",
+    "@types/node": "^20.11.19",
+    "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.3.1",
+    "@typescript-eslint/parser": "^7.3.1",
+    "@vitejs/plugin-legacy": "^5.4.2",
+    "autoprefixer": "^10.4.18",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-lit": "^1.11.1",
+    "eslint-plugin-simple-import-sort": "^12.0.0",
+    "jsdom": "^23.2.0",
+    "postcss": "^8.4.35",
+    "prettier": "^3.2.5",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.4",
+    "vite": "^5.2.8",
+    "vite-plugin-pwa": "^0.17.5",
+    "vitest": "^1.3.0"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "@types/node"
+      ]
+    }
+  }
+}

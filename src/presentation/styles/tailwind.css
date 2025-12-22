@@ -1,0 +1,152 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+  background: var(--bg1);
+  min-height: 100vh;
+  color: var(--text);
+}
+
+.theme-transition,
+.theme-transition * {
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease,
+    box-shadow 180ms ease, fill 180ms ease, stroke 180ms ease;
+}
+
+.text-strong {
+  color: var(--text);
+}
+.text-muted {
+  color: var(--muted);
+}
+
+[data-theme='dark'],
+.dark {
+  color-scheme: light;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.font-extrabold {
+  font-weight: 600;
+}
+.font-bold {
+  font-weight: 600;
+}
+
+.shadow,
+.shadow-sm,
+.shadow-md,
+.shadow-lg,
+.shadow-xl,
+.shadow-2xl {
+  box-shadow: var(--shadow-soft) !important;
+}
+
+.page {
+  animation: fadeUp 0.35s ease;
+}
+
+.fade-up {
+  animation: fadeUp 0.3s ease;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.app-shell {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 12px 12px 88px;
+}
+
+@media (min-width: 768px) {
+  .app-shell {
+    max-width: 1180px;
+    padding: 16px 16px 24px;
+  }
+}
+
+.pill {
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 700;
+}
+
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+}
+
+.blur-overlay {
+  background: rgba(15, 23, 42, 0.22);
+}
+
+.icon-btn {
+  border-radius: 999px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, transform 0.12s ease;
+}
+.icon-btn:hover {
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface) 94%);
+}
+.icon-btn:active {
+  transform: scale(0.98);
+}
+
+.chip-btn {
+  border-radius: 999px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 650;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: none;
+  transition: transform 0.12s ease, background-color 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap;
+}
+.chip-btn:hover {
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface) 94%);
+}
+.chip-btn:active {
+  transform: scale(0.98);
+}
+.chip-btn.selected {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface-strong) 86%);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent 60%);
+  color: var(--accent-strong);
+}
+
+.text-rose-500 {
+  color: var(--danger);
+}
