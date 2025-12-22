@@ -15,7 +15,8 @@ type DrawerItem = {
 };
 
 const items: DrawerItem[] = [
-  { label: 'Inicio', icon: 'home', path: '/' },
+  { label: 'Dashboard', icon: 'home', path: '/dashboard' },
+  { label: 'Calendario', icon: 'calendar', path: '/calendar' },
   { label: 'Jobs', icon: 'briefcase', path: '/jobs' },
   { label: 'Clientes', icon: 'user', path: '/clients' },
   { label: 'Mercado', icon: 'bolt', path: '/leads', badge: '10' },

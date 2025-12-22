@@ -82,6 +82,8 @@ export class AppRoot extends LitElement {
   }
 
   private headerTitle(path: string) {
+    if (path === '/' || path.startsWith('/dashboard')) return 'Dashboard';
+    if (path.startsWith('/calendar')) return 'Calendario';
     if (path.startsWith('/leads')) return 'Mercado';
     if (path.startsWith('/kpis')) return 'KPIs';
     if (path.startsWith('/jobs')) return 'Jobs';
@@ -90,6 +92,7 @@ export class AppRoot extends LitElement {
     if (path.startsWith('/profile')) return 'Perfil';
     if (path.startsWith('/premium')) return 'Premium';
     if (path.startsWith('/help')) return 'Ayuda';
+    if (path.startsWith('/history')) return 'Historial';
     return 'Clean Today';
   }
 

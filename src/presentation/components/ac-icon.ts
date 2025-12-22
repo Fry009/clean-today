@@ -6,6 +6,7 @@ export type IconName =
   | 'briefcase'
   | 'graph'
   | 'user'
+  | 'calendar'
   | 'bell'
   | 'menu'
   | 'close'
@@ -32,6 +33,7 @@ const paths: Record<IconName, ReturnType<typeof svg>> = {
   briefcase: svg`<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a1 1 0 0 1 1-1Zm5-4h6a1 1 0 0 1 1 1v3H8V5a1 1 0 0 1 1-1Z"/>`,
   graph: svg`<path stroke-linecap="round" stroke-linejoin="round" d="M5 12h3v8H5zm6-5h3v13h-3zm6 8h3v5h-3z"/>`,
   user: svg`<path stroke-linecap="round" stroke-linejoin="round" d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm-7 7a7 7 0 0 1 14 0"/>`,
+  calendar: svg`<rect x="4" y="6" width="16" height="14" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M8 3v4m8-4v4M4 10h16"/>`,
   bell: svg`<path stroke-linecap="round" stroke-linejoin="round" d="M6 15.5V11a6 6 0 0 1 12 0v4.5l1.5 1.5H4.5z"/><path d="M10 19a2 2 0 0 0 4 0"/>`,
   menu: svg`<path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16"/>`,
   close: svg`<path stroke-linecap="round" stroke-linejoin="round" d="m6 6 12 12M6 18 18 6"/>`,

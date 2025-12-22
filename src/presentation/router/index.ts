@@ -10,13 +10,16 @@ import '../pages/history-page';
 import '../pages/clients-page';
 import '../pages/help-page';
 import '../pages/settings-page';
+import '../pages/calendar-page';
 
 import { Router } from '@vaadin/router';
 
 export function createRouter(outlet: Element) {
   const router = new Router(outlet);
   router.setRoutes([
-    { path: '/', component: 'home-page' },
+    { path: '/', redirect: '/dashboard' },
+    { path: '/dashboard', component: 'home-page' },
+    { path: '/calendar', component: 'calendar-page' },
     { path: '/jobs', component: 'jobs-page' },
     { path: '/jobs/:id', component: 'job-detail-page' },
     { path: '/jobs/:id/evidence', component: 'evidence-page' },

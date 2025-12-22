@@ -8,7 +8,8 @@ import type { IconName } from './ac-icon';
 type TabItem = { label: string; icon: IconName; path: string };
 
 const tabs: TabItem[] = [
-  { label: 'Hoy', icon: 'home', path: '/' },
+  { label: 'Dashboard', icon: 'home', path: '/dashboard' },
+  { label: 'Calendario', icon: 'calendar', path: '/calendar' },
   { label: 'Jobs', icon: 'briefcase', path: '/jobs' },
   { label: 'KPIs', icon: 'graph', path: '/kpis' },
   { label: 'Perfil', icon: 'user', path: '/profile' }
@@ -43,15 +44,15 @@ export class AcTabbar extends LitElement {
     }
     .bar {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 6px;
       background: var(--surface);
       border: 1px solid var(--border);
       box-shadow: none;
       border-radius: 999px;
       padding: 6px;
-      min-width: 320px;
-      max-width: 420px;
+      min-width: 360px;
+      max-width: 560px;
     }
     button {
       border: none;
