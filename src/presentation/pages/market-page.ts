@@ -1,4 +1,5 @@
 import '../components/ac-button';
+import '../components/ac-chip';
 import '../components/ac-icon';
 import '../components/ac-skeleton';
 
@@ -6,10 +7,19 @@ import dayjs from 'dayjs';
 import { html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 
-import { MarketEvent, MarketPortal } from '@core/entities/types';
+import { MarketEvent, MarketOfferResult, MarketPortal, TrackedOpportunity } from '@core/entities/types';
+import { portalDefinitions } from '@shared/market/portalUrlBuilders';
+import {
+  clearMarketEvents,
+  generateMarketResults,
+  getState,
+  includeMarketResult,
+  listMarketEvents,
+  subscribe,
+  trackMarketEvent
+} from '../state/store';
 import { BaseComponent } from '../components/base';
-import { clearMarketEvents, getState, listMarketEvents, subscribe, trackMarketEvent } from '../state/store';
-import { buildPortalSearchUrl, portalDefinitions } from '@shared/market/portalUrlBuilders';
+import type { AcToast } from '../components/ac-toast';
 
 const debounceMs = 300;
 
@@ -24,14 +34,11 @@ export class MarketPage extends BaseComponent {
   @state() declare feedback?: string;
   @state() declare showAll: boolean;
   @state() declare selectedPortals: Set<MarketPortal>;
-  @state() declare results: Array<{
-    portal: MarketPortal;
-    name: string;
-    outboundUrl: string;
-    query: string;
-    location?: string;
-    category?: string;
-  }>;
+  @state() declare results: MarketOfferResult[];
+  @state() declare loadingResults: boolean;
+  @state() declare opportunities: TrackedOpportunity[];
+  @state() declare activePortal: MarketPortal | 'all';
+  @state() declare including: Set<string>;
 
   private unsub?: () => void;
   private debounceHandle?: number;
@@ -47,6 +54,10 @@ export class MarketPage extends BaseComponent {
     this.showAll = false;
     this.selectedPortals = new Set(portalDefinitions.map((p) => p.key));
     this.results = [];
+    this.loadingResults = false;
+    this.opportunities = [];
+    this.activePortal = 'all';
+    this.including = new Set();
   }
 
   connectedCallback(): void {
@@ -54,9 +65,11 @@ export class MarketPage extends BaseComponent {
     const state = getState();
     this.ready = state.ready;
     this.events = state.marketEvents ?? [];
+    this.opportunities = state.opportunities ?? [];
     this.unsub = subscribe((s) => {
       this.ready = s.ready;
       this.events = s.marketEvents ?? [];
+      this.opportunities = s.opportunities ?? [];
     });
     queueMicrotask(() => listMarketEvents());
   }
@@ -82,47 +95,63 @@ export class MarketPage extends BaseComponent {
     this.selectedPortals = next;
   }
 
-  private buildResult(portal: MarketPortal) {
+  private async runSearch(portals: MarketPortal[]) {
     const activeQuery = (this.debouncedQuery || this.query).trim();
     if (!activeQuery) {
       this.feedback = 'Escribe una busqueda primero';
-      return null;
+      window.setTimeout(() => (this.feedback = undefined), 2000);
+      return;
     }
-    const outboundUrl = buildPortalSearchUrl(portal, {
+    this.loadingResults = true;
+    this.activePortal = 'all';
+    this.results = await generateMarketResults({
       query: activeQuery,
       location: this.location.trim(),
-      category: this.category
+      category: this.category,
+      portals
     });
-    const name = portalDefinitions.find((p) => p.key === portal)?.name ?? portal;
-    return { portal, name, outboundUrl, query: activeQuery, location: this.location.trim(), category: this.category };
+    this.loadingResults = false;
+    this.feedback = `Mock: ${this.results.length} resultados listos`;
+    window.setTimeout(() => (this.feedback = undefined), 2400);
   }
 
-  private runSearch(portals: MarketPortal[]) {
-    const built = portals
-      .map((p) => this.buildResult(p))
-      .filter((r): r is NonNullable<ReturnType<MarketPage['buildResult']>> => Boolean(r));
-    this.results = built;
-    if (built.length > 0) {
-      this.feedback = `Listo: ${built.length} resultados preparados (sin navegar).`;
-      window.setTimeout(() => (this.feedback = undefined), 2000);
-    }
+  private portalLabel(portal: MarketPortal) {
+    return portalDefinitions.find((p) => p.key === portal)?.name ?? portal;
   }
 
-  private async copyAndTrack(result: { portal: MarketPortal; outboundUrl: string; query: string; location?: string; category?: string }) {
+  private isTracked(result: MarketOfferResult) {
+    return this.opportunities.some((opp) => opp.outboundUrl === result.outboundUrl);
+  }
+
+  private async includeResult(result: MarketOfferResult) {
+    this.including = new Set(this.including).add(result.id);
+    const toast = document.querySelector('#toast') as AcToast | null;
     try {
-      await navigator.clipboard.writeText(result.outboundUrl);
-      this.feedback = 'URL copiada';
-      window.setTimeout(() => (this.feedback = undefined), 1500);
+      const { duplicated } = await includeMarketResult(result);
+      if (duplicated) {
+        toast?.show('Ya estaba en seguimiento', 'info');
+      } else {
+        toast?.show('Añadido a seguimiento', 'success');
+      }
     } catch (_e) {
-      // fallback
-      window.prompt('Copia la URL', result.outboundUrl);
+      toast?.show('No se pudo guardar la oportunidad', 'error');
+    } finally {
+      const next = new Set(this.including);
+      next.delete(result.id);
+      this.including = next;
     }
+  }
+
+  private async openOffer(result: MarketOfferResult) {
+    window.open(result.outboundUrl, '_blank');
     await trackMarketEvent({
+      type: 'market_offer_open',
       portal: result.portal,
-      query: result.query,
-      location: result.location ?? null,
-      category: result.category ?? null,
-      outboundUrl: result.outboundUrl
+      query: result.sourceQuery,
+      location: result.location,
+      category: result.category,
+      outboundUrl: result.outboundUrl,
+      resultId: result.id
     });
   }
 
@@ -130,24 +159,46 @@ export class MarketPage extends BaseComponent {
     await clearMarketEvents();
   }
 
-  private locationParts(raw?: string | null) {
-    if (!raw) return { municipio: 'N/D', provincia: 'N/D' };
-    const [first, second] = raw.split(',').map((p) => p.trim());
-    return {
-      municipio: first || 'N/D',
-      provincia: second || 'N/D'
-    };
+  private groupedResults() {
+    const grouped: Record<MarketPortal, MarketOfferResult[]> = { milanuncios: [], infojobs: [], indeed: [], linkedin: [] };
+    this.results.forEach((r) => {
+      grouped[r.portal] = grouped[r.portal] || [];
+      grouped[r.portal].push(r);
+    });
+    return grouped;
+  }
+
+  private filteredResults() {
+    if (this.activePortal === 'all') return this.results;
+    return this.results.filter((r) => r.portal === this.activePortal);
+  }
+
+  private resultMeta(result: MarketOfferResult) {
+    const when = dayjs(result.createdAt).format('DD MMM HH:mm');
+    const price = result.priceOrSalary ?? '—';
+    return `${when} • ${result.location} • ${price}`;
+  }
+
+  private eventDescription(evt: MarketEvent) {
+    if (evt.type === 'market_offer_open') return 'Oferta abierta desde resultados';
+    if (evt.type === 'opportunity_added') return 'Incluida en seguimiento';
+    if (evt.type === 'opportunity_status_changed')
+      return `Estado: ${evt.statusFrom ?? '-'} -> ${evt.statusTo ?? '-'}`;
+    if (evt.type === 'opportunity_opened') return 'Apertura desde Oportunidades';
+    return 'Busqueda directa en portal';
   }
 
   render() {
     const recent = this.events.slice(0, 10);
     const list = this.showAll ? this.events : recent;
+    const grouped = this.groupedResults();
+    const portalFilter = ['all', ...portalDefinitions.map((p) => p.key)] as const;
 
     return html`
       <section class="fade-up max-w-[1100px] mx-auto space-y-4 px-1">
         <div class="space-y-1">
           <h1 class="text-2xl font-extrabold text-strong">Market</h1>
-          <p class="text-sm text-muted">Busca ofertas en portales externos</p>
+          <p class="text-sm text-muted">Metabuscador sin scraping · pruebas con datos mock</p>
           ${this.feedback
             ? html`<p class="text-xs text-strong rounded-xl px-3 py-2 inline-flex items-center gap-2"
                 style="background: color-mix(in srgb, var(--accent) 10%, var(--surface) 90%); border: 1px solid var(--border);"
@@ -170,7 +221,7 @@ export class MarketPage extends BaseComponent {
                 style="border-color: var(--border); background: color-mix(in srgb, var(--surface) 94%, var(--accent) 6%);"
                 type="text"
                 .value=${this.query}
-                placeholder="Buscar ofertas… (ej: limpieza Madrid)"
+                placeholder="Buscar ofertas (ej: limpieza Madrid)"
                 @input=${(e: Event) => this.onQueryInput((e.target as HTMLInputElement).value)}
               />
               <p class="text-xs text-muted">Debounce 300ms: solo para UX, no se hacen llamadas externas.</p>
@@ -202,7 +253,7 @@ export class MarketPage extends BaseComponent {
           </div>
 
           <div class="space-y-3">
-            <p class="text-sm text-muted">Selecciona portales (busqueda via Google con site:portal)</p>
+            <p class="text-sm text-muted">Selecciona portales (solo construimos URLs, sin scraping)</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
               ${portalDefinitions.map(
                 (portal) => html`
@@ -226,11 +277,15 @@ export class MarketPage extends BaseComponent {
               )}
             </div>
             <div class="flex flex-wrap gap-2">
-              <ac-button @click=${() => this.runSearch(Array.from(this.selectedPortals))}>
+              <ac-button ?disabled=${this.loadingResults} @click=${() => this.runSearch(Array.from(this.selectedPortals))}>
                 <ac-icon name="search" size="16"></ac-icon>
                 Buscar en seleccionados
               </ac-button>
-              <ac-button variant="secondary" @click=${() => this.runSearch(portalDefinitions.map((p) => p.key))}>
+              <ac-button
+                variant="secondary"
+                ?disabled=${this.loadingResults}
+                @click=${() => this.runSearch(portalDefinitions.map((p) => p.key))}
+              >
                 <ac-icon name="bolt" size="16"></ac-icon>
                 Generar todos
               </ac-button>
@@ -242,54 +297,80 @@ export class MarketPage extends BaseComponent {
           class="rounded-2xl p-4 space-y-3"
           style="background: var(--surface); border: 1px solid var(--border);"
         >
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between gap-2">
             <div>
-              <p class="text-sm text-muted">Resultados (sin navegar)</p>
-              <h2 class="text-lg font-semibold text-strong">Tabla de URLs</h2>
+              <p class="text-sm text-muted">Resultados (mock) por portal</p>
+              <h2 class="text-lg font-semibold text-strong">Previsualiza antes de abrir</h2>
             </div>
-            <span class="text-xs text-muted">${this.results.length} entradas</span>
+            <span class="text-xs text-muted">${this.results.length} resultados</span>
           </div>
-          ${this.results.length === 0
-            ? html`<p class="text-sm text-muted">Aún no hay resultados. Ejecuta una búsqueda.</p>`
-            : html`
-                <div class="overflow-auto">
-                  <table class="w-full text-sm">
-                    <thead class="text-xs text-muted">
-                      <tr>
-                        <th class="text-left py-2">Portal</th>
-                        <th class="text-left py-2">URL</th>
-                        <th class="text-left py-2">Descripcion</th>
-                        <th class="text-left py-2">Municipio</th>
-                        <th class="text-left py-2">Provincia</th>
-                        <th class="text-left py-2">Accion</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${this.results.map((res) => {
-                        const loc = this.locationParts(res.location);
-                        const shortUrl =
-                          res.outboundUrl.length > 50
-                            ? `${res.outboundUrl.slice(0, 50)}...`
-                            : res.outboundUrl;
-                        return html`
-                          <tr class="border-t" style="border-color: var(--border);">
-                            <td class="py-2 font-semibold text-strong">${res.name}</td>
-                            <td class="py-2 text-xs text-muted break-all">${shortUrl}</td>
-                            <td class="py-2">${res.query}</td>
-                            <td class="py-2">${loc.municipio}</td>
-                            <td class="py-2">${loc.provincia}</td>
-                            <td class="py-2">
-                              <button class="chip-btn" @click=${() => this.copyAndTrack(res)}>
-                                Copiar URL
-                              </button>
-                            </td>
-                          </tr>
-                        `;
-                      })}
-                    </tbody>
-                  </table>
+          <p class="text-xs text-muted">
+            Resultados de ejemplo para previsualizar el flujo (sin scraping). Cada "Ver oferta" abre el portal real.
+          </p>
+          <div class="flex gap-2 overflow-x-auto pb-1">
+            ${portalFilter.map(
+              (p) => html`
+                <button
+                  class="chip-btn ${this.activePortal === p ? 'selected' : ''}"
+                  @click=${() => (this.activePortal = p as MarketPortal | 'all')}
+                >
+                  ${p === 'all' ? 'Todos' : this.portalLabel(p as MarketPortal)}
+                  ${p === 'all'
+                    ? ''
+                    : html`<span class="text-muted text-[11px] ml-1">
+                        ${(grouped as Record<string, MarketOfferResult[]>)[p as string]?.length ?? 0}
+                      </span>`}
+                </button>
+              `
+            )}
+          </div>
+          ${this.loadingResults
+            ? html`
+                <div class="space-y-2">
+                  ${Array.from({ length: 4 }).map(
+                    () => html`<ac-skeleton width="100%" height="84"></ac-skeleton>`
+                  )}
                 </div>
-              `}
+              `
+            : this.filteredResults().length === 0
+              ? html`<p class="text-sm text-muted">Aun no hay resultados. Ejecuta una busqueda.</p>`
+              : html`
+                  <div class="space-y-2">
+                    ${this.filteredResults().map((res) => {
+                      const tracked = this.isTracked(res);
+                      const portalName = this.portalLabel(res.portal);
+                      return html`
+                        <div
+                          class="flex flex-col md:flex-row md:items-center gap-3 p-3 rounded-2xl border"
+                          style="border-color: var(--border); background: color-mix(in srgb, var(--surface) 96%, var(--accent) 4%);"
+                        >
+                          <div class="flex-1 min-w-0 space-y-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                              <ac-chip color="blue">${portalName}</ac-chip>
+                              <span class="text-xs text-muted">${this.resultMeta(res)}</span>
+                            </div>
+                            <p class="font-semibold text-strong truncate">${res.title}</p>
+                            <p class="text-sm text-muted">${res.category ?? 'General'} • ${res.location}</p>
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <ac-button size="sm" @click=${() => this.openOffer(res)}>
+                              <ac-icon name="external-link" size="14"></ac-icon>
+                              Ver oferta
+                            </ac-button>
+                            <ac-button
+                              size="sm"
+                              variant="secondary"
+                              ?disabled=${tracked || this.including.has(res.id)}
+                              @click=${() => this.includeResult(res)}
+                            >
+                              ${tracked ? 'Incluido' : 'Incluir en la app'}
+                            </ac-button>
+                          </div>
+                        </div>
+                      `;
+                    })}
+                  </div>
+                `}
         </div>
 
         <div
@@ -325,22 +406,24 @@ export class MarketPage extends BaseComponent {
                       <thead class="text-xs text-muted">
                         <tr>
                           <th class="text-left py-2">Portal</th>
-                          <th class="text-left py-2">Municipio</th>
-                          <th class="text-left py-2">Provincia</th>
-                          <th class="text-left py-2">Descripcion</th>
+                          <th class="text-left py-2">Detalle</th>
                           <th class="text-left py-2">Fecha</th>
                           <th class="text-left py-2">Acciones</th>
                         </tr>
                       </thead>
                       <tbody>
                         ${list.map((evt) => {
-                          const loc = this.locationParts(evt.location);
+                          const detail =
+                            evt.type === 'opportunity_status_changed'
+                              ? `${evt.statusFrom ?? '-'} -> ${evt.statusTo ?? '-'}`
+                              : evt.query || evt.category || evt.outboundUrl;
                           return html`
                             <tr class="border-t" style="border-color: var(--border);">
                               <td class="py-2 capitalize font-semibold text-strong">${evt.portal}</td>
-                              <td class="py-2">${loc.municipio}</td>
-                              <td class="py-2">${loc.provincia}</td>
-                              <td class="py-2">${evt.query}</td>
+                              <td class="py-2">
+                                <div class="font-semibold text-sm">${this.eventDescription(evt)}</div>
+                                <div class="text-xs text-muted">${detail}</div>
+                              </td>
                               <td class="py-2 text-muted">${dayjs(evt.createdAt).format('DD MMM HH:mm')}</td>
                               <td class="py-2">
                                 <button class="chip-btn" @click=${() => window.open(evt.outboundUrl, '_blank')}>

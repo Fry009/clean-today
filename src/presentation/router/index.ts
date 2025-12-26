@@ -12,6 +12,7 @@ import '../pages/help-page';
 import '../pages/settings-page';
 import '../pages/calendar-page';
 import '../pages/market-page';
+import '../pages/opportunities-page';
 
 import { Router } from '@vaadin/router';
 
@@ -31,6 +32,7 @@ export function createRouter(outlet: Element) {
     { path: '/premium', component: 'premium-page' },
     { path: '/history', component: 'history-page' },
     { path: '/clients', component: 'clients-page' },
+    { path: '/opportunities', component: 'opportunities-page' },
     { path: '/settings', component: 'settings-page' },
     { path: '/help', component: 'help-page' }
   ]);

@@ -86,6 +86,7 @@ export class AppRoot extends LitElement {
     if (path.startsWith('/calendar')) return 'Calendario';
     if (path.startsWith('/market')) return 'Market';
     if (path.startsWith('/leads')) return 'Mercado';
+    if (path.startsWith('/opportunities')) return 'Oportunidades';
     if (path.startsWith('/kpis')) return 'KPIs';
     if (path.startsWith('/jobs')) return 'Jobs';
     if (path.startsWith('/clients')) return 'Clientes';

@@ -8,7 +8,9 @@ import {
   Lead,
   LeadStatus,
   MarketEvent,
+  OpportunityStatus,
   PremiumPlan,
+  TrackedOpportunity,
   ServiceJob
 } from '../entities/types';
 
@@ -66,6 +68,16 @@ export interface MarketEventRepository {
   add(event: MarketEvent): Promise<void>;
   list(): Promise<MarketEvent[]>;
   clear(): Promise<void>;
+}
+
+export interface TrackedOpportunityRepository {
+  add(opportunity: TrackedOpportunity): Promise<TrackedOpportunity>;
+  update(id: string, patch: Partial<TrackedOpportunity>): Promise<TrackedOpportunity | undefined>;
+  list(filters?: { status?: OpportunityStatus; portal?: string }): Promise<TrackedOpportunity[]>;
+  getById(id: string): Promise<TrackedOpportunity | undefined>;
+  delete(id: string): Promise<void>;
+  incrementOpenCount(id: string): Promise<TrackedOpportunity | undefined>;
+  findByOutboundUrl(outboundUrl: string): Promise<TrackedOpportunity | undefined>;
 }
 
 export interface SettingsRepository {

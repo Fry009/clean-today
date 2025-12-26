@@ -7,6 +7,9 @@ import {
   Lead,
   MarketEvent,
   MarketPortal,
+  MarketOfferResult,
+  OpportunityStatus,
+  TrackedOpportunity,
   ServiceJob
 } from '@core/entities/types';
 import { AppSettings } from '@core/ports/repositories';
@@ -24,6 +27,7 @@ export interface AppState {
   kpis: KPI[];
   leads: Lead[];
   marketEvents: MarketEvent[];
+  opportunities: TrackedOpportunity[];
   settings: AppSettings;
   flags?: FeatureFlag;
   syncing: boolean;
@@ -37,6 +41,7 @@ let state: AppState = {
   kpis: [],
   leads: [],
   marketEvents: [],
+  opportunities: [],
   syncing: false,
   settings: { theme: 'light', language: 'es', demoMode: true, accent: 'ocean', plan: 'FREE' }
 };
@@ -71,8 +76,9 @@ export async function initStore() {
   const settings = await container.repos.settingsRepo.getSettings();
   const flags = await container.repos.flagRepo.getPlan('emp-1');
   const marketEvents = await container.repos.marketEventRepo.list();
+  const opportunities = await container.usecases.listTrackedOpportunities.execute();
   applyAccentClass(settings.accent);
-  setState({ ready: true, employee, jobs, clients, kpis, leads, settings, flags, marketEvents });
+  setState({ ready: true, employee, jobs, clients, kpis, leads, settings, flags, marketEvents, opportunities });
 }
 
 export async function startCheckIn(jobId: string) {
@@ -235,22 +241,31 @@ export async function listClients() {
 
 export async function trackMarketEvent(event: {
   portal: MarketPortal;
-  query: string;
+  query?: string;
   location?: string | null;
   category?: string | null;
   outboundUrl: string;
+  type?: MarketEvent['type'];
+  resultId?: string;
+  opportunityId?: string;
+  statusFrom?: OpportunityStatus;
+  statusTo?: OpportunityStatus;
 }) {
   const container = await containerPromise!;
   const created: MarketEvent = {
     id: uuid(),
-    type: 'portal_search_click',
+    type: event.type ?? 'portal_search_click',
     portal: event.portal,
-    query: event.query,
+    query: event.query ?? '',
     location: event.location ?? null,
     category: event.category ?? null,
     outboundUrl: event.outboundUrl,
     source: 'market',
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    resultId: event.resultId,
+    opportunityId: event.opportunityId,
+    statusFrom: event.statusFrom,
+    statusTo: event.statusTo
   };
   await container.repos.marketEventRepo.add(created);
   const marketEvents = await container.repos.marketEventRepo.list();
@@ -269,6 +284,87 @@ export async function clearMarketEvents() {
   const container = await containerPromise!;
   await container.repos.marketEventRepo.clear();
   setState({ marketEvents: [] });
+}
+
+export async function generateMarketResults(params: {
+  query: string;
+  location?: string;
+  category?: string;
+  portals: MarketPortal[];
+}) {
+  const container = await containerPromise!;
+  return container.usecases.generateMarketResults.execute(params);
+}
+
+export async function includeMarketResult(result: MarketOfferResult) {
+  const container = await containerPromise!;
+  const { opportunity, duplicated } = await container.usecases.addTrackedOpportunity.execute({ result });
+  const opportunities = await container.usecases.listTrackedOpportunities.execute();
+  setState({ opportunities });
+  if (!duplicated) {
+    await trackMarketEvent({
+      type: 'opportunity_added',
+      portal: opportunity.portal,
+      query: result.sourceQuery,
+      location: result.location,
+      category: result.category,
+      outboundUrl: opportunity.outboundUrl,
+      resultId: result.id,
+      opportunityId: opportunity.id
+    });
+  }
+  return { opportunity, duplicated };
+}
+
+export async function listOpportunities(filters?: { status?: OpportunityStatus; portal?: string }) {
+  const container = await containerPromise!;
+  const opportunities = await container.usecases.listTrackedOpportunities.execute(filters);
+  setState({ opportunities });
+  return opportunities;
+}
+
+export async function updateOpportunityStatus(id: string, status: OpportunityStatus) {
+  const container = await containerPromise!;
+  const current = state.opportunities.find((item) => item.id === id);
+  const updated = await container.usecases.updateTrackedOpportunity.execute(id, { status });
+  const opportunities = await container.usecases.listTrackedOpportunities.execute();
+  setState({ opportunities });
+  if (updated) {
+    await trackMarketEvent({
+      type: 'opportunity_status_changed',
+      portal: updated.portal,
+      outboundUrl: updated.outboundUrl,
+      opportunityId: updated.id,
+      statusFrom: current?.status,
+      statusTo: status
+    });
+  }
+  return updated;
+}
+
+export async function updateOpportunityNotes(id: string, notes: string) {
+  const container = await containerPromise!;
+  const updated = await container.usecases.updateTrackedOpportunity.execute(id, { notes });
+  const opportunities = await container.usecases.listTrackedOpportunities.execute();
+  setState({ opportunities });
+  return updated;
+}
+
+export async function openOpportunity(id: string) {
+  const container = await containerPromise!;
+  const updated = await container.usecases.openTrackedOpportunity.execute(id);
+  const opportunities = await container.usecases.listTrackedOpportunities.execute();
+  setState({ opportunities });
+  const target = updated ?? opportunities.find((item) => item.id === id);
+  if (target) {
+    await trackMarketEvent({
+      type: 'opportunity_opened',
+      portal: target.portal,
+      outboundUrl: target.outboundUrl,
+      opportunityId: target.id
+    });
+  }
+  return updated;
 }
 
 export async function addClient(input: { name: string; address?: string; notes?: string }) {

@@ -5,14 +5,19 @@ import { ComputeKPIsForEmployee } from '@application/usecases/ComputeKPIsForEmpl
 import { ConvertLeadToJob } from '@application/usecases/ConvertLeadToJob';
 import { DiscardLead } from '@application/usecases/DiscardLead';
 import { ExportJobReportPDF } from '@application/usecases/ExportJobReportPDF';
+import { GenerateMarketResults } from '@application/usecases/GenerateMarketResults';
 import { ImportLeadAsJob } from '@application/usecases/ImportLeadAsJob';
+import { AddTrackedOpportunity } from '@application/usecases/AddTrackedOpportunity';
 import { ListJobsForEmployee } from '@application/usecases/ListJobsForEmployee';
 import { ListLeads } from '@application/usecases/ListLeads';
+import { ListTrackedOpportunities } from '@application/usecases/ListTrackedOpportunities';
+import { OpenTrackedOpportunity } from '@application/usecases/OpenTrackedOpportunity';
 import { RefreshLeads } from '@application/usecases/RefreshLeads';
 import { SaveLead } from '@application/usecases/SaveLead';
 import { StartJobCheckIn } from '@application/usecases/StartJobCheckIn';
 import { StopJobCheckOut } from '@application/usecases/StopJobCheckOut';
 import { SyncPendingOperations } from '@application/usecases/SyncPendingOperations';
+import { UpdateTrackedOpportunity } from '@application/usecases/UpdateTrackedOpportunity';
 import { UpgradeToPremium } from '@application/usecases/UpgradeToPremium';
 
 import { FakeApiAdapter } from './adapters/fakeApiAdapter';
@@ -27,6 +32,7 @@ import { LocalLeadRepository } from './repositories/localLeadRepository';
 import { LocalSessionRepository } from './repositories/localSessionRepository';
 import { LocalSettingsRepository } from './repositories/localSettingsRepository';
 import { LocalMarketEventRepository } from './repositories/localMarketEventRepository';
+import { LocalTrackedOpportunityRepository } from './repositories/localTrackedOpportunityRepository';
 import { OutboxDexieRepository } from './repositories/outboxRepository';
 import { seedDatabase } from './storage/seedData';
 
@@ -46,6 +52,7 @@ export async function buildContainer() {
   const settingsRepo = new LocalSettingsRepository();
   const leadRepo = new LocalLeadRepository();
   const marketEventRepo = new LocalMarketEventRepository();
+  const trackedOpportunityRepo = new LocalTrackedOpportunityRepository();
 
   return {
     repos: {
@@ -59,7 +66,8 @@ export async function buildContainer() {
       clientRepo,
       settingsRepo,
       leadRepo,
-      marketEventRepo
+      marketEventRepo,
+      trackedOpportunityRepo
     },
     usecases: {
       listJobs: new ListJobsForEmployee(jobRepo),
@@ -77,7 +85,12 @@ export async function buildContainer() {
       refreshLeads: new RefreshLeads(leadRepo),
       saveLead: new SaveLead(leadRepo),
       discardLead: new DiscardLead(leadRepo),
-      convertLead: new ConvertLeadToJob(leadRepo, jobRepo)
+      convertLead: new ConvertLeadToJob(leadRepo, jobRepo),
+      generateMarketResults: new GenerateMarketResults(),
+      addTrackedOpportunity: new AddTrackedOpportunity(trackedOpportunityRepo),
+      listTrackedOpportunities: new ListTrackedOpportunities(trackedOpportunityRepo),
+      openTrackedOpportunity: new OpenTrackedOpportunity(trackedOpportunityRepo),
+      updateTrackedOpportunity: new UpdateTrackedOpportunity(trackedOpportunityRepo)
     },
     adapters: {
       fakeApi

@@ -10,6 +10,7 @@ type TabItem = { label: string; icon: IconName; path: string };
 const tabs: TabItem[] = [
   { label: 'Dashboard', icon: 'home', path: '/dashboard' },
   { label: 'Market', icon: 'search', path: '/market' },
+  { label: 'Oportunidades', icon: 'bookmark', path: '/opportunities' },
   { label: 'Calendario', icon: 'calendar', path: '/calendar' },
   { label: 'Jobs', icon: 'briefcase', path: '/jobs' },
   { label: 'KPIs', icon: 'graph', path: '/kpis' },
@@ -45,14 +46,14 @@ export class AcTabbar extends LitElement {
     }
     .bar {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(7, 1fr);
       gap: 6px;
       background: var(--surface);
       border: 1px solid var(--border);
       box-shadow: none;
       border-radius: 999px;
       padding: 6px;
-      min-width: 420px;
+      min-width: 460px;
       max-width: 640px;
     }
     button {

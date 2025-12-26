@@ -8,12 +8,14 @@ import { customElement, state } from 'lit/decorators.js';
 
 import { BaseComponent } from '../components/base';
 import { computeKpis, getState, subscribe } from '../state/store';
+import { portalDefinitions } from '@shared/market/portalUrlBuilders';
 
 @customElement('kpis-page')
 export class KpisPage extends BaseComponent {
   @state() declare kpis: ReturnType<typeof getState>['kpis'];
   @state() declare metric: 'jobs' | 'revenue' | 'rating';
   @state() declare period: 'week' | 'month';
+  @state() declare opportunities: ReturnType<typeof getState>['opportunities'];
   private chart?: Chart;
 
   private unsub?: () => void;
@@ -21,10 +23,12 @@ export class KpisPage extends BaseComponent {
   connectedCallback(): void {
     super.connectedCallback();
     this.kpis = getState().kpis;
+    this.opportunities = getState().opportunities;
     this.metric = 'jobs';
     this.period = 'week';
     this.unsub = subscribe((s) => {
       this.kpis = s.kpis;
+      this.opportunities = s.opportunities;
       this.renderChart();
     });
     queueMicrotask(() => this.renderChart());
@@ -97,6 +101,25 @@ export class KpisPage extends BaseComponent {
     this.renderChart();
   }
 
+  private opportunityStats() {
+    const totals = { saved: 0, applied: 0, interview: 0, rejected: 0, opens: 0 };
+    const byPortal: Record<string, number> = {};
+    this.opportunities.forEach((opp) => {
+      totals[opp.status] += 1;
+      totals.opens += opp.openCount ?? 0;
+      byPortal[opp.portal] = (byPortal[opp.portal] ?? 0) + 1;
+    });
+    const totalGuardadas = totals.saved + totals.applied + totals.interview + totals.rejected;
+    const ratio = totalGuardadas > 0 ? Math.round((totals.applied / totalGuardadas) * 100) : 0;
+    const topPortalKey = Object.entries(byPortal).sort((a, b) => b[1] - a[1])[0]?.[0];
+    return {
+      totals,
+      totalGuardadas,
+      ratio,
+      topPortal: topPortalKey
+    };
+  }
+
   render() {
     const latest = this.kpis[this.kpis.length - 1];
     const metrics = [
@@ -104,6 +127,10 @@ export class KpisPage extends BaseComponent {
       { key: 'revenue', label: 'Ingresos' },
       { key: 'rating', label: 'Rating' }
     ] as const;
+    const oppStats = this.opportunityStats();
+    const topPortalLabel = oppStats.topPortal
+      ? portalDefinitions.find((p) => p.key === oppStats.topPortal)?.name ?? oppStats.topPortal
+      : 'N/D';
 
     return html`
       <section class="space-y-3 fade-up max-w-[520px] mx-auto">
@@ -164,6 +191,34 @@ export class KpisPage extends BaseComponent {
             </div>
           </div>
         </ac-card>
+
+        <div class="space-y-2">
+          <div class="flex items-center justify-between px-1">
+            <div>
+              <p class="text-sm text-muted">Market</p>
+              <h3 class="text-lg font-semibold text-strong">KPIs Oportunidades</h3>
+            </div>
+            <span class="text-xs text-muted">${oppStats.totalGuardadas} totales</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <ac-kpi-tile label="Guardadas" value=${oppStats.totalGuardadas}></ac-kpi-tile>
+            <ac-kpi-tile label="Aplicadas" value=${oppStats.totals.applied}></ac-kpi-tile>
+            <ac-kpi-tile label="Entrevistas" value=${oppStats.totals.interview}></ac-kpi-tile>
+            <ac-kpi-tile label="Aperturas" value=${oppStats.totals.opens}></ac-kpi-tile>
+          </div>
+          <ac-card variant="glass">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="text-sm text-muted">Top portal</p>
+                <p class="font-semibold text-strong">${topPortalLabel}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-sm text-muted">Ratio aplicadas/guardadas</p>
+                <p class="text-lg font-semibold text-strong">${oppStats.ratio}%</p>
+              </div>
+            </div>
+          </ac-card>
+        </div>
       </section>
     `;
   }

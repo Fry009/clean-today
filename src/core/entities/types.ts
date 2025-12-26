@@ -120,9 +120,16 @@ export type LeadStatus = 'unhandled' | 'saved' | 'discarded';
 
 export type MarketPortal = 'milanuncios' | 'infojobs' | 'indeed' | 'linkedin';
 
+export type MarketEventType =
+  | 'portal_search_click'
+  | 'market_offer_open'
+  | 'opportunity_added'
+  | 'opportunity_status_changed'
+  | 'opportunity_opened';
+
 export interface MarketEvent {
   id: string;
-  type: 'portal_search_click';
+  type: MarketEventType;
   portal: MarketPortal;
   query: string;
   location: string | null;
@@ -130,4 +137,40 @@ export interface MarketEvent {
   outboundUrl: string;
   source: 'market';
   createdAt: string;
+  resultId?: string;
+  opportunityId?: string;
+  statusFrom?: OpportunityStatus;
+  statusTo?: OpportunityStatus;
+}
+
+export interface MarketOfferResult {
+  id: string;
+  portal: MarketPortal;
+  title: string;
+  location: string;
+  category: string | null;
+  priceOrSalary: string | null;
+  createdAt: string;
+  outboundUrl: string;
+  sourceQuery: string;
+}
+
+export type OpportunityStatus = 'saved' | 'applied' | 'interview' | 'rejected';
+
+export interface TrackedOpportunity {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  source: 'market';
+  portal: MarketPortal;
+  title: string;
+  location: string;
+  category: string | null;
+  priceOrSalary: string | null;
+  outboundUrl: string;
+  status: OpportunityStatus;
+  notes?: string;
+  tags?: string[];
+  lastOpenedAt?: string | null;
+  openCount: number;
 }

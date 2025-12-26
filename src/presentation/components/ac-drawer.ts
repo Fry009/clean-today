@@ -26,6 +26,7 @@ const items: DrawerItem[] = [
     icon: 'graph',
     children: [
       { label: 'KPIs', icon: 'graph', path: '/kpis', badge: '12' },
+      { label: 'Oportunidades', icon: 'bookmark', path: '/opportunities' },
       { label: 'Historial', icon: 'bookmark', path: '/history' }
     ]
   },
