@@ -18,6 +18,12 @@ type CandidateProfile = {
   province: string;
 };
 
+type EmployerOffer = {
+  id: string;
+  title: string;
+  applications: number;
+};
+
 @customElement('profile-page')
 export class ProfilePage extends BaseComponent {
   @state() declare employee: ReturnType<typeof getState>['employee'];
@@ -26,6 +32,8 @@ export class ProfilePage extends BaseComponent {
   @state() declare referral: string;
   @state() declare candidateProfile?: CandidateProfile;
   @state() declare candidateError?: string;
+  @state() declare employerOffers: EmployerOffer[] = [];
+  @state() declare employerError?: string;
 
   private unsub?: () => void;
 
@@ -53,6 +61,17 @@ export class ProfilePage extends BaseComponent {
       this.candidateProfile = data;
     } catch (error) {
       this.candidateError = (error as Error).message;
+    }
+
+    try {
+      const res = await fetch('/api/employers/offers');
+      if (!res.ok) {
+        throw new Error(`Ofertas de empleador no disponibles (${res.status})`);
+      }
+      const data = (await res.json()) as EmployerOffer[];
+      this.employerOffers = data;
+    } catch (error) {
+      this.employerError = (error as Error).message;
     }
   }
 
@@ -158,6 +177,33 @@ export class ProfilePage extends BaseComponent {
                   <p class="text-sm"><span class="text-muted">Teléfono:</span> ${this.candidateProfile?.phone ?? '...'}</p>
                   <p class="text-sm"><span class="text-muted">Provincia:</span> ${this.candidateProfile?.province ?? '...'}</p>
                   <p class="text-xs text-muted">Fuente: /api/candidates/profile</p>
+                </div>
+              `}
+        </div>
+
+        <div class="rounded-2xl p-4" style="background: var(--surface); border: 1px solid var(--border);">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <p class="font-semibold">Ofertas como empleador</p>
+              <p class="text-sm text-muted">SOAP proxied por el backend</p>
+            </div>
+            <ac-chip color="green">Empresa</ac-chip>
+          </div>
+          ${this.employerError
+            ? html`<p class="text-sm text-warning mt-2">${this.employerError}</p>`
+            : html`
+                <div class="mt-3 space-y-2">
+                  ${this.employerOffers.length === 0
+                    ? html`<p class="text-sm text-muted">Sin ofertas disponibles</p>`
+                    : this.employerOffers.map(
+                        (offer) => html`
+                          <div class="p-3 rounded-xl" style="border: 1px solid var(--border);">
+                            <p class="font-semibold">${offer.title}</p>
+                            <p class="text-sm text-muted">ID: ${offer.id}</p>
+                            <p class="text-sm text-muted">Candidaturas: ${offer.applications}</p>
+                          </div>
+                        `
+                      )}
                 </div>
               `}
         </div>

@@ -12,4 +12,11 @@ public class WebClientConfig {
                 .baseUrl(properties.getBaseUrl())
                 .build();
     }
+
+    @Bean
+    public WebClient employerWebClient(InfoJobsProperties properties) {
+        return WebClient.builder()
+                .baseUrl(properties.getEmployerBaseUrl())
+                .build();
+    }
 }

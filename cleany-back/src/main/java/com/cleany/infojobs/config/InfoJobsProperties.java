@@ -11,6 +11,7 @@ public class InfoJobsProperties {
     private String clientSecret;
     private String redirectUri;
     private String scope;
+    private String employerBaseUrl;
 
     public String getBaseUrl() {
         return baseUrl;
@@ -50,5 +51,13 @@ public class InfoJobsProperties {
 
     public void setScope(String scope) {
         this.scope = scope;
+    }
+
+    public String getEmployerBaseUrl() {
+        return employerBaseUrl != null ? employerBaseUrl : baseUrl;
+    }
+
+    public void setEmployerBaseUrl(String employerBaseUrl) {
+        this.employerBaseUrl = employerBaseUrl;
     }
 }

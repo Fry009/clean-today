@@ -13,6 +13,7 @@ import com.cleany.infojobs.infrastructure.infojobs.dto.InfoJobsOfferResponse;
 import com.cleany.infojobs.infrastructure.infojobs.dto.InfoJobsOffersResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -29,7 +30,7 @@ public class InfoJobsGatewayAdapter implements InfoJobsGateway {
     private final WebClient webClient;
     private final InfoJobsProperties properties;
 
-    public InfoJobsGatewayAdapter(WebClient infoJobsWebClient, InfoJobsProperties properties) {
+    public InfoJobsGatewayAdapter(@Qualifier("infoJobsWebClient") WebClient infoJobsWebClient, InfoJobsProperties properties) {
         this.webClient = infoJobsWebClient;
         this.properties = properties;
     }

@@ -12,12 +12,14 @@ Backend listo para arrancar en IntelliJ con arquitectura hexagonal, puertos/adap
 - `src/main/resources/application.yml`: H2 en memoria (dev rápido).
 - `src/main/resources/application-postgres.yml`: Postgres real. Variables: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
 - Env OAuth InfoJobs: `INFOJOBS_CLIENT_ID`, `INFOJOBS_CLIENT_SECRET`, `INFOJOBS_SCOPE`, `INFOJOBS_REDIRECT_URI` (placeholders ahora).
+- SOAP empleador: `infojobs.employer-base-url` (opcional, por defecto usa `infojobs.base-url`).
 
 ## Endpoints principales
 - `POST /api/offers/sync` sincroniza ofertas desde InfoJobs (gateway configurado).
 - `GET /api/offers` lista ofertas persistidas.
 - `POST /api/applications` aplica a una oferta usando `externalOfferId` + datos de candidato.
 - **Candidatos**: `GET /api/candidates/profile`, `GET /api/candidates/skill-categories`, `GET /api/candidates/skills?categoryId=...`, `GET /api/candidates/curriculums` (proxy a InfoJobs).
+- **Empleador (SOAP)**: `GET /api/employers/offers`, `GET /api/employers/offers/{offerId}/applications` (proxy SOAP -> JSON).
 
 ## Ejecutar
 ```bash
