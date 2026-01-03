@@ -10,12 +10,22 @@ import { v4 as uuid } from 'uuid';
 import { BaseComponent } from '../components/base';
 import { getState, startTrial, subscribe, upgrade } from '../state/store';
 
+type CandidateProfile = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  province: string;
+};
+
 @customElement('profile-page')
 export class ProfilePage extends BaseComponent {
   @state() declare employee: ReturnType<typeof getState>['employee'];
   @state() declare flags: ReturnType<typeof getState>['flags'];
   @state() declare settings: ReturnType<typeof getState>['settings'];
   @state() declare referral: string;
+  @state() declare candidateProfile?: CandidateProfile;
+  @state() declare candidateError?: string;
 
   private unsub?: () => void;
 
@@ -31,6 +41,19 @@ export class ProfilePage extends BaseComponent {
       this.flags = s.flags;
       this.settings = s.settings;
     });
+  }
+
+  async firstUpdated() {
+    try {
+      const res = await fetch('/api/candidates/profile');
+      if (!res.ok) {
+        throw new Error(`Perfil no disponible (${res.status})`);
+      }
+      const data = (await res.json()) as CandidateProfile;
+      this.candidateProfile = data;
+    } catch (error) {
+      this.candidateError = (error as Error).message;
+    }
   }
 
   disconnectedCallback(): void {
@@ -116,6 +139,27 @@ export class ProfilePage extends BaseComponent {
               >Copiar</ac-button
             >
           </div>
+        </div>
+
+        <div class="rounded-2xl p-4" style="background: var(--surface); border: 1px solid var(--border);">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <p class="font-semibold">Perfil InfoJobs</p>
+              <p class="text-sm text-muted">Datos básicos del candidato (API backend)</p>
+            </div>
+            <ac-chip color="blue">Candidato</ac-chip>
+          </div>
+          ${this.candidateError
+            ? html`<p class="text-sm text-warning mt-2">${this.candidateError}</p>`
+            : html`
+                <div class="mt-3 space-y-2">
+                  <p class="text-sm"><span class="text-muted">Nombre:</span> ${this.candidateProfile?.name ?? '...'}</p>
+                  <p class="text-sm"><span class="text-muted">Email:</span> ${this.candidateProfile?.email ?? '...'}</p>
+                  <p class="text-sm"><span class="text-muted">Teléfono:</span> ${this.candidateProfile?.phone ?? '...'}</p>
+                  <p class="text-sm"><span class="text-muted">Provincia:</span> ${this.candidateProfile?.province ?? '...'}</p>
+                  <p class="text-xs text-muted">Fuente: /api/candidates/profile</p>
+                </div>
+              `}
         </div>
       </section>
     `;

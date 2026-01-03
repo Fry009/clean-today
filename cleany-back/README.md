@@ -17,6 +17,7 @@ Backend listo para arrancar en IntelliJ con arquitectura hexagonal, puertos/adap
 - `POST /api/offers/sync` sincroniza ofertas desde InfoJobs (gateway configurado).
 - `GET /api/offers` lista ofertas persistidas.
 - `POST /api/applications` aplica a una oferta usando `externalOfferId` + datos de candidato.
+- **Candidatos**: `GET /api/candidates/profile`, `GET /api/candidates/skill-categories`, `GET /api/candidates/skills?categoryId=...`, `GET /api/candidates/curriculums` (proxy a InfoJobs).
 
 ## Ejecutar
 ```bash
@@ -28,4 +29,4 @@ Backend listo para arrancar en IntelliJ con arquitectura hexagonal, puertos/adap
 ```bash
 ./gradlew test
 ```
-Levanta Postgres en Testcontainers y WireMock para mockear InfoJobs; valida sync y apply end-to-end.
+Levanta Postgres en Testcontainers y WireMock para mockear InfoJobs; valida sync/apply y endpoints de candidato end-to-end.
