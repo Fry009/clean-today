@@ -1,0 +1,30 @@
+# Build output
+/build/
+/out/
+/target/
+
+# Gradle cache
+/.gradle/
+
+# IDE files
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and temp
+*.log
+*.tmp
+*.swp
+*.swo
+/logs/
+/tmp/
+
+# Compiled classes
+*.class

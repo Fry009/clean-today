@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: infojobs-backend
+  datasource:
+    url: jdbc:h2:mem:infojobs;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+  flyway:
+    enabled: true
+
+infojobs:
+  base-url: https://api.infojobs.net
+  client-id: ${INFOJOBS_CLIENT_ID:change-me}
+  client-secret: ${INFOJOBS_CLIENT_SECRET:change-me}
+  redirect-uri: http://localhost:8080/auth/callback
+  scope: read_applications read_offers
+
+logging:
+  level:
+    root: INFO
+    com.cleany.infojobs: DEBUG
