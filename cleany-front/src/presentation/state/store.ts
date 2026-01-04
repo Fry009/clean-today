@@ -10,7 +10,8 @@ import {
   MarketOfferResult,
   OpportunityStatus,
   TrackedOpportunity,
-  ServiceJob
+  ServiceJob,
+  JobPosting
 } from '@core/entities/types';
 import { AppSettings } from '@core/ports/repositories';
 import { buildContainer } from '@infrastructure/container';
@@ -29,6 +30,9 @@ export interface AppState {
   marketEvents: MarketEvent[];
   opportunities: TrackedOpportunity[];
   settings: AppSettings;
+  jobPostings: JobPosting[];
+  jobLoading: boolean;
+  jobError?: string;
   flags?: FeatureFlag;
   syncing: boolean;
   error?: string;
@@ -42,6 +46,8 @@ let state: AppState = {
   leads: [],
   marketEvents: [],
   opportunities: [],
+  jobPostings: [],
+  jobLoading: false,
   syncing: false,
   settings: { theme: 'light', language: 'es', demoMode: true, accent: 'ocean', plan: 'FREE' }
 };
@@ -77,8 +83,21 @@ export async function initStore() {
   const flags = await container.repos.flagRepo.getPlan('emp-1');
   const marketEvents = await container.repos.marketEventRepo.list();
   const opportunities = await container.usecases.listTrackedOpportunities.execute();
+  const jobPostings = await container.usecases.listJobPostings.execute();
   applyAccentClass(settings.accent);
-  setState({ ready: true, employee, jobs, clients, kpis, leads, settings, flags, marketEvents, opportunities });
+  setState({
+    ready: true,
+    employee,
+    jobs,
+    clients,
+    kpis,
+    leads,
+    settings,
+    flags,
+    marketEvents,
+    opportunities,
+    jobPostings
+  });
 }
 
 export async function startCheckIn(jobId: string) {
@@ -348,6 +367,77 @@ export async function updateOpportunityNotes(id: string, notes: string) {
   const opportunities = await container.usecases.listTrackedOpportunities.execute();
   setState({ opportunities });
   return updated;
+}
+
+export async function fetchJobSources() {
+  const container = await containerPromise!;
+  setState({ jobLoading: true, jobError: undefined });
+  try {
+    await container.usecases.fetchJobSources.execute();
+    const jobPostings = await container.usecases.listJobPostings.execute();
+    setState({ jobPostings });
+  } catch (error) {
+    setState({ jobError: (error as Error).message });
+  } finally {
+    setState({ jobLoading: false });
+  }
+}
+
+export async function listJobPostings(filters?: {
+  text?: string;
+  location?: string;
+  province?: string;
+  country?: string;
+  remoteType?: 'onsite' | 'remote' | 'hybrid';
+  tags?: string[];
+  sourceName?: string;
+  favorites?: boolean;
+}) {
+  const container = await containerPromise!;
+  const jobPostings = await container.usecases.listJobPostings.execute(filters);
+  setState({ jobPostings });
+  return jobPostings;
+}
+
+export async function importManualPosting(input: {
+  title: string;
+  company: string;
+  location: string;
+  applyUrl: string;
+  sourceUrl?: string;
+  tags?: string[];
+}) {
+  const container = await containerPromise!;
+  const posting = await container.usecases.importManualPosting.execute({
+    title: input.title,
+    company: input.company,
+    location: input.location,
+    applyUrl: input.applyUrl,
+    sourceUrl: input.sourceUrl ?? input.applyUrl,
+    tags: input.tags ?? [],
+    publishedAt: new Date().toISOString(),
+    remoteType: undefined,
+    salaryText: null,
+    descriptionSnippet: undefined
+  } as any);
+  const jobPostings = await container.usecases.listJobPostings.execute();
+  setState({ jobPostings });
+  return posting;
+}
+
+export async function importCsvPosting(fileText: string) {
+  const container = await containerPromise!;
+  const result = await container.usecases.importCsvPosting.execute(fileText);
+  const jobPostings = await container.usecases.listJobPostings.execute();
+  setState({ jobPostings });
+  return result;
+}
+
+export async function toggleFavorite(postingId: string, favorite: boolean) {
+  const container = await containerPromise!;
+  await container.repos.jobPostingRepo.markFavorite(postingId, favorite);
+  const jobPostings = await container.usecases.listJobPostings.execute();
+  setState({ jobPostings });
 }
 
 export async function openOpportunity(id: string) {

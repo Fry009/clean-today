@@ -174,3 +174,35 @@ export interface TrackedOpportunity {
   lastOpenedAt?: string | null;
   openCount: number;
 }
+
+export type RemoteType = 'onsite' | 'remote' | 'hybrid';
+
+export interface JobPosting {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  province?: string;
+  country?: string;
+  remoteType?: RemoteType;
+  salaryText?: string | null;
+  publishedAt: string;
+  sourceName: string;
+  sourceUrl: string;
+  applyUrl: string;
+  tags: string[];
+  descriptionSnippet?: string;
+  createdAt: string;
+  favorite?: boolean;
+}
+
+export type SourceType = 'rss' | 'api' | 'manual' | 'csv';
+
+export interface Source {
+  id: string;
+  name: string;
+  type: SourceType;
+  url?: string;
+  isEnabled: boolean;
+  lastFetchedAt?: string;
+}

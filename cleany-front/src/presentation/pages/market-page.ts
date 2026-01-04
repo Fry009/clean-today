@@ -8,36 +8,25 @@ import { html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 
 import { MarketEvent, MarketOfferResult, MarketPortal, TrackedOpportunity } from '@core/entities/types';
-import { portalDefinitions } from '@shared/market/portalUrlBuilders';
-import {
-  clearMarketEvents,
-  generateMarketResults,
-  getState,
-  includeMarketResult,
-  listMarketEvents,
-  subscribe,
-  trackMarketEvent
-} from '../state/store';
+import { clearMarketEvents, getState, includeMarketResult, listMarketEvents, subscribe, trackMarketEvent } from '../state/store';
 import { BaseComponent } from '../components/base';
 import type { AcToast } from '../components/ac-toast';
 
 const debounceMs = 300;
+const INFOJOBS_PORTAL: MarketPortal = 'infojobs';
 
 @customElement('market-page')
 export class MarketPage extends BaseComponent {
   @state() declare query: string;
   @state() declare debouncedQuery: string;
   @state() declare location: string;
-  @state() declare category: string;
   @state() declare events: MarketEvent[];
   @state() declare ready: boolean;
   @state() declare feedback?: string;
   @state() declare showAll: boolean;
-  @state() declare selectedPortals: Set<MarketPortal>;
   @state() declare results: MarketOfferResult[];
   @state() declare loadingResults: boolean;
   @state() declare opportunities: TrackedOpportunity[];
-  @state() declare activePortal: MarketPortal | 'all';
   @state() declare including: Set<string>;
 
   private unsub?: () => void;
@@ -48,15 +37,12 @@ export class MarketPage extends BaseComponent {
     this.query = '';
     this.debouncedQuery = '';
     this.location = '';
-    this.category = 'anuncios';
     this.events = [];
     this.ready = false;
     this.showAll = false;
-    this.selectedPortals = new Set(portalDefinitions.map((p) => p.key));
     this.results = [];
     this.loadingResults = false;
     this.opportunities = [];
-    this.activePortal = 'all';
     this.including = new Set();
   }
 
@@ -85,38 +71,49 @@ export class MarketPage extends BaseComponent {
     this.debounceHandle = window.setTimeout(() => (this.debouncedQuery = value), debounceMs);
   }
 
-  private togglePortal(portal: MarketPortal, checked: boolean) {
-    const next = new Set(this.selectedPortals);
-    if (checked) {
-      next.add(portal);
-    } else {
-      next.delete(portal);
-    }
-    this.selectedPortals = next;
-  }
-
-  private async runSearch(portals: MarketPortal[]) {
+  private async runSearch() {
     const activeQuery = (this.debouncedQuery || this.query).trim();
     if (!activeQuery) {
-      this.feedback = 'Escribe una busqueda primero';
+      this.feedback = 'Escribe una búsqueda primero';
       window.setTimeout(() => (this.feedback = undefined), 2000);
       return;
     }
     this.loadingResults = true;
-    this.activePortal = 'all';
-    this.results = await generateMarketResults({
-      query: activeQuery,
-      location: this.location.trim(),
-      category: this.category,
-      portals
-    });
+    try {
+      const params = new URLSearchParams();
+      params.set('query', activeQuery);
+      if (this.location.trim()) params.set('location', this.location.trim());
+      const res = await fetch(`/api/market/search?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error(`Error ${res.status}`);
+      }
+      const data = (await res.json()) as Array<{
+        externalId: string;
+        title: string;
+        description: string;
+        company: string;
+        location: string;
+        publishedAt: string;
+        outboundUrl: string;
+      }>;
+      this.results = data.map((item) => ({
+        id: item.externalId,
+        portal: INFOJOBS_PORTAL,
+        title: item.title,
+        location: item.location,
+        category: 'empleo',
+        priceOrSalary: null,
+        createdAt: item.publishedAt ?? new Date().toISOString(),
+        outboundUrl: item.outboundUrl,
+        sourceQuery: activeQuery
+      }));
+      this.feedback = `InfoJobs: ${this.results.length} resultados`;
+    } catch (_error) {
+      this.feedback = 'No se pudo obtener resultados de InfoJobs';
+      this.results = [];
+    }
     this.loadingResults = false;
-    this.feedback = `Mock: ${this.results.length} resultados listos`;
     window.setTimeout(() => (this.feedback = undefined), 2400);
-  }
-
-  private portalLabel(portal: MarketPortal) {
-    return portalDefinitions.find((p) => p.key === portal)?.name ?? portal;
   }
 
   private isTracked(result: MarketOfferResult) {
@@ -159,24 +156,9 @@ export class MarketPage extends BaseComponent {
     await clearMarketEvents();
   }
 
-  private groupedResults() {
-    const grouped: Record<MarketPortal, MarketOfferResult[]> = { milanuncios: [], infojobs: [], indeed: [], linkedin: [] };
-    this.results.forEach((r) => {
-      grouped[r.portal] = grouped[r.portal] || [];
-      grouped[r.portal].push(r);
-    });
-    return grouped;
-  }
-
-  private filteredResults() {
-    if (this.activePortal === 'all') return this.results;
-    return this.results.filter((r) => r.portal === this.activePortal);
-  }
-
   private resultMeta(result: MarketOfferResult) {
     const when = dayjs(result.createdAt).format('DD MMM HH:mm');
-    const price = result.priceOrSalary ?? '—';
-    return `${when} • ${result.location} • ${price}`;
+    return `${when} · ${result.location}`;
   }
 
   private eventDescription(evt: MarketEvent) {
@@ -185,20 +167,18 @@ export class MarketPage extends BaseComponent {
     if (evt.type === 'opportunity_status_changed')
       return `Estado: ${evt.statusFrom ?? '-'} -> ${evt.statusTo ?? '-'}`;
     if (evt.type === 'opportunity_opened') return 'Apertura desde Oportunidades';
-    return 'Busqueda directa en portal';
+    return 'Búsqueda directa';
   }
 
   render() {
     const recent = this.events.slice(0, 10);
     const list = this.showAll ? this.events : recent;
-    const grouped = this.groupedResults();
-    const portalFilter = ['all', ...portalDefinitions.map((p) => p.key)] as const;
 
     return html`
       <section class="fade-up max-w-[1100px] mx-auto space-y-4 px-1">
         <div class="space-y-1">
           <h1 class="text-2xl font-extrabold text-strong">Market</h1>
-          <p class="text-sm text-muted">Metabuscador sin scraping · pruebas con datos mock</p>
+          <p class="text-sm text-muted">Buscador InfoJobs (sin scraping, vía backend)</p>
           ${this.feedback
             ? html`<p class="text-xs text-strong rounded-xl px-3 py-2 inline-flex items-center gap-2"
                 style="background: color-mix(in srgb, var(--accent) 10%, var(--surface) 90%); border: 1px solid var(--border);"
@@ -215,7 +195,7 @@ export class MarketPage extends BaseComponent {
         >
           <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div class="md:col-span-2 space-y-2">
-              <label class="text-sm text-muted">Busqueda</label>
+              <label class="text-sm text-muted">Búsqueda</label>
               <input
                 class="w-full rounded-xl border px-3 py-2 text-sm"
                 style="border-color: var(--border); background: color-mix(in srgb, var(--surface) 94%, var(--accent) 6%);"
@@ -224,10 +204,10 @@ export class MarketPage extends BaseComponent {
                 placeholder="Buscar ofertas (ej: limpieza Madrid)"
                 @input=${(e: Event) => this.onQueryInput((e.target as HTMLInputElement).value)}
               />
-              <p class="text-xs text-muted">Debounce 300ms: solo para UX, no se hacen llamadas externas.</p>
+              <p class="text-xs text-muted">Debounce 300ms para evitar peticiones repetidas.</p>
             </div>
             <div class="space-y-2">
-              <label class="text-sm text-muted">Ubicacion</label>
+              <label class="text-sm text-muted">Ubicación</label>
               <input
                 class="w-full rounded-xl border px-3 py-2 text-sm"
                 style="border-color: var(--border); background: var(--surface);"
@@ -238,58 +218,12 @@ export class MarketPage extends BaseComponent {
               />
             </div>
           </div>
-          <div class="flex flex-wrap items-center gap-3">
-            <label class="text-sm text-muted">Categoria</label>
-            <select
-              class="rounded-xl border px-3 py-2 text-sm"
-              style="border-color: var(--border); background: var(--surface);"
-              .value=${this.category}
-              @change=${(e: Event) => (this.category = (e.target as HTMLSelectElement).value)}
-            >
-              ${['anuncios', 'servicios', 'empleo', 'limpieza'].map(
-                (opt) => html`<option value=${opt}>${opt}</option>`
-              )}
-            </select>
-          </div>
 
-          <div class="space-y-3">
-            <p class="text-sm text-muted">Selecciona portales (solo construimos URLs, sin scraping)</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-              ${portalDefinitions.map(
-                (portal) => html`
-                  <label
-                    class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition"
-                    style="border-color: var(--border);"
-                  >
-                    <input
-                      type="checkbox"
-                      .checked=${this.selectedPortals.has(portal.key)}
-                      @change=${(e: Event) =>
-                        this.togglePortal(portal.key, (e.target as HTMLInputElement).checked)}
-                    />
-                    <div class="space-y-1">
-                      <p class="text-sm font-semibold text-strong">${portal.name}</p>
-                      <p class="text-xs text-muted">${portal.description}</p>
-                      <p class="text-xs text-muted">Dominio: ${portal.domain}</p>
-                    </div>
-                  </label>
-                `
-              )}
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <ac-button ?disabled=${this.loadingResults} @click=${() => this.runSearch(Array.from(this.selectedPortals))}>
-                <ac-icon name="search" size="16"></ac-icon>
-                Buscar en seleccionados
-              </ac-button>
-              <ac-button
-                variant="secondary"
-                ?disabled=${this.loadingResults}
-                @click=${() => this.runSearch(portalDefinitions.map((p) => p.key))}
-              >
-                <ac-icon name="bolt" size="16"></ac-icon>
-                Generar todos
-              </ac-button>
-            </div>
+          <div class="flex flex-wrap gap-2">
+            <ac-button ?disabled=${this.loadingResults} @click=${() => this.runSearch()}>
+              <ac-icon name="search" size="16"></ac-icon>
+              Buscar en InfoJobs
+            </ac-button>
           </div>
         </div>
 
@@ -299,31 +233,12 @@ export class MarketPage extends BaseComponent {
         >
           <div class="flex items-center justify-between gap-2">
             <div>
-              <p class="text-sm text-muted">Resultados (mock) por portal</p>
+              <p class="text-sm text-muted">Resultados InfoJobs</p>
               <h2 class="text-lg font-semibold text-strong">Previsualiza antes de abrir</h2>
             </div>
             <span class="text-xs text-muted">${this.results.length} resultados</span>
           </div>
-          <p class="text-xs text-muted">
-            Resultados de ejemplo para previsualizar el flujo (sin scraping). Cada "Ver oferta" abre el portal real.
-          </p>
-          <div class="flex gap-2 overflow-x-auto pb-1">
-            ${portalFilter.map(
-              (p) => html`
-                <button
-                  class="chip-btn ${this.activePortal === p ? 'selected' : ''}"
-                  @click=${() => (this.activePortal = p as MarketPortal | 'all')}
-                >
-                  ${p === 'all' ? 'Todos' : this.portalLabel(p as MarketPortal)}
-                  ${p === 'all'
-                    ? ''
-                    : html`<span class="text-muted text-[11px] ml-1">
-                        ${(grouped as Record<string, MarketOfferResult[]>)[p as string]?.length ?? 0}
-                      </span>`}
-                </button>
-              `
-            )}
-          </div>
+          <p class="text-xs text-muted">Cada "Ver oferta" abre el enlace proporcionado por el backend.</p>
           ${this.loadingResults
             ? html`
                 <div class="space-y-2">
@@ -332,13 +247,12 @@ export class MarketPage extends BaseComponent {
                   )}
                 </div>
               `
-            : this.filteredResults().length === 0
-              ? html`<p class="text-sm text-muted">Aun no hay resultados. Ejecuta una busqueda.</p>`
+            : this.results.length === 0
+              ? html`<p class="text-sm text-muted">Aún no hay resultados. Ejecuta una búsqueda.</p>`
               : html`
                   <div class="space-y-2">
-                    ${this.filteredResults().map((res) => {
+                    ${this.results.map((res) => {
                       const tracked = this.isTracked(res);
-                      const portalName = this.portalLabel(res.portal);
                       return html`
                         <div
                           class="flex flex-col md:flex-row md:items-center gap-3 p-3 rounded-2xl border"
@@ -346,11 +260,11 @@ export class MarketPage extends BaseComponent {
                         >
                           <div class="flex-1 min-w-0 space-y-1">
                             <div class="flex items-center gap-2 flex-wrap">
-                              <ac-chip color="blue">${portalName}</ac-chip>
+                              <ac-chip color="blue">InfoJobs</ac-chip>
                               <span class="text-xs text-muted">${this.resultMeta(res)}</span>
                             </div>
                             <p class="font-semibold text-strong truncate">${res.title}</p>
-                            <p class="text-sm text-muted">${res.category ?? 'General'} • ${res.location}</p>
+                            <p class="text-sm text-muted">${res.location}</p>
                           </div>
                           <div class="flex items-center gap-2">
                             <ac-button size="sm" @click=${() => this.openOffer(res)}>
@@ -384,7 +298,7 @@ export class MarketPage extends BaseComponent {
             </div>
             <div class="flex gap-2">
               <ac-button variant="secondary" @click=${() => (this.showAll = !this.showAll)}>
-                ${this.showAll ? 'Ver ultimos 10' : 'Ver todo'}
+                ${this.showAll ? 'Ver últimos 10' : 'Ver todo'}
               </ac-button>
               <ac-button variant="secondary" @click=${() => this.clearHistory()}>
                 Borrar historial
@@ -399,7 +313,7 @@ export class MarketPage extends BaseComponent {
                 )}
               </div>`
             : list.length === 0
-              ? html`<p class="text-sm text-muted">Sin actividad registrada todavia.</p>`
+              ? html`<p class="text-sm text-muted">Sin actividad registrada todavía.</p>`
               : html`
                   <div class="overflow-auto">
                     <table class="w-full text-sm">

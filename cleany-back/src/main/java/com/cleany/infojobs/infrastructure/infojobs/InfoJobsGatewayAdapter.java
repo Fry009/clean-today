@@ -36,9 +36,18 @@ public class InfoJobsGatewayAdapter implements InfoJobsGateway {
     }
 
     @Override
-    public List<Offer> fetchOffers() {
+    public List<Offer> fetchOffers(String query, String location) {
         InfoJobsOffersResponse response = webClient.get()
-                .uri("/offers")
+                .uri(uriBuilder -> {
+                    var builder = uriBuilder.path("/offers");
+                    if (query != null && !query.isBlank()) {
+                        builder.queryParam("q", query);
+                    }
+                    if (location != null && !location.isBlank()) {
+                        builder.queryParam("location", location);
+                    }
+                    return builder.build();
+                })
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(InfoJobsOffersResponse.class)

@@ -10,6 +10,7 @@ type TabItem = { label: string; icon: IconName; path: string };
 const tabs: TabItem[] = [
   { label: 'Dashboard', icon: 'home', path: '/dashboard' },
   { label: 'Market', icon: 'search', path: '/market' },
+  { label: 'Ofertas', icon: 'bookmark', path: '/offers' },
   { label: 'Oportunidades', icon: 'bookmark', path: '/opportunities' },
   { label: 'Calendario', icon: 'calendar', path: '/calendar' },
   { label: 'Jobs', icon: 'briefcase', path: '/jobs' },

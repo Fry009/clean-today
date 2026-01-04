@@ -11,7 +11,10 @@ import {
   OpportunityStatus,
   PremiumPlan,
   TrackedOpportunity,
-  ServiceJob
+  ServiceJob,
+  JobPosting,
+  RemoteType,
+  Source
 } from '../entities/types';
 
 export interface JobRepository {
@@ -83,6 +86,26 @@ export interface TrackedOpportunityRepository {
 export interface SettingsRepository {
   getSettings(): Promise<AppSettings>;
   saveSettings(settings: AppSettings): Promise<void>;
+}
+
+export interface JobPostingRepository {
+  upsertMany(postings: JobPosting[]): Promise<void>;
+  list(filters?: {
+    text?: string;
+    location?: string;
+    remoteType?: RemoteType;
+    tags?: string[];
+    sourceName?: string;
+    favorites?: boolean;
+  }): Promise<JobPosting[]>;
+  getById(id: string): Promise<JobPosting | undefined>;
+  markFavorite(id: string, favorite: boolean): Promise<void>;
+}
+
+export interface SourceRepository {
+  listEnabled(): Promise<Source[]>;
+  upsert(source: Source): Promise<void>;
+  disable(sourceId: string): Promise<void>;
 }
 
 export type PendingOperationType =

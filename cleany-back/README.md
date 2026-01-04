@@ -20,6 +20,7 @@ Backend listo para arrancar en IntelliJ con arquitectura hexagonal, puertos/adap
 - `POST /api/applications` aplica a una oferta usando `externalOfferId` + datos de candidato.
 - **Candidatos**: `GET /api/candidates/profile`, `GET /api/candidates/skill-categories`, `GET /api/candidates/skills?categoryId=...`, `GET /api/candidates/curriculums` (proxy a InfoJobs).
 - **Empleador (SOAP)**: `GET /api/employers/offers`, `GET /api/employers/offers/{offerId}/applications` (proxy SOAP -> JSON).
+- **Market (InfoJobs búsqueda)**: `GET /api/market/search?query=...&location=...` devuelve ofertas InfoJobs sin persistir.
 
 ## Ejecutar
 ```bash

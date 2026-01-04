@@ -58,3 +58,10 @@ Adapters actuales: `Local*Repository`, `OutboxDexieRepository`, `FakeApiAdapter`
 ## Cómo activar modo demo
 - Por defecto activo (`VITE_DEMO_MODE=true`).
 - Cambia en `.env` o variables de entorno y reinicia `pnpm dev`.
+- Job Offers Module
+- Agregador de ofertas sin scraping: solo RSS/Atom, APIs públicas o entrada manual/CSV. Respeta robots.txt/ToS.
+- UI: pestaña “Ofertas” con búsqueda, filtros básicos, favoritos y botón “Actualizar”.
+- Importar: formulario manual y carga de CSV (`title, company, location, applyUrl, sourceUrl, publishedAt, tags`).
+- Offline: Dexie con tablas `job_postings` y `sources`. Fuentes demo (RSS) solo si `demoMode` está activo.
+- Tests Vitest: deduplicación por `title+company+applyUrl` y parseo CSV básico.
+- Aviso: No se usa scraping de portales restringidos; solo fuentes permitidas o aportadas por el usuario.

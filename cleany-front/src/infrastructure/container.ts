@@ -12,6 +12,10 @@ import { ListJobsForEmployee } from '@application/usecases/ListJobsForEmployee';
 import { ListLeads } from '@application/usecases/ListLeads';
 import { ListTrackedOpportunities } from '@application/usecases/ListTrackedOpportunities';
 import { OpenTrackedOpportunity } from '@application/usecases/OpenTrackedOpportunity';
+import { ListJobPostingsUseCase } from '@application/usecases/ListJobPostingsUseCase';
+import { FetchEnabledSourcesUseCase } from '@application/usecases/FetchEnabledSourcesUseCase';
+import { ImportManualPostingUseCase } from '@application/usecases/ImportManualPostingUseCase';
+import { ImportCsvUseCase } from '@application/usecases/ImportCsvUseCase';
 import { RefreshLeads } from '@application/usecases/RefreshLeads';
 import { SaveLead } from '@application/usecases/SaveLead';
 import { StartJobCheckIn } from '@application/usecases/StartJobCheckIn';
@@ -34,7 +38,12 @@ import { LocalSettingsRepository } from './repositories/localSettingsRepository'
 import { LocalMarketEventRepository } from './repositories/localMarketEventRepository';
 import { LocalTrackedOpportunityRepository } from './repositories/localTrackedOpportunityRepository';
 import { OutboxDexieRepository } from './repositories/outboxRepository';
+import { DexieJobPostingRepository } from './repositories/dexieJobPostingRepository';
+import { DexieSourceRepository } from './repositories/dexieSourceRepository';
 import { seedDatabase } from './storage/seedData';
+import { RssFetcher } from './fetchers/rssFetcher';
+import { OpenApiFetcher } from './fetchers/openApiFetcher';
+import { JobOffersSync } from './services/jobOffersSync';
 
 export async function buildContainer() {
   await seedDatabase();
@@ -53,6 +62,18 @@ export async function buildContainer() {
   const leadRepo = new LocalLeadRepository();
   const marketEventRepo = new LocalMarketEventRepository();
   const trackedOpportunityRepo = new LocalTrackedOpportunityRepository();
+  const jobPostingRepo = new DexieJobPostingRepository();
+  const sourceRepo = new DexieSourceRepository();
+  const rssFetcher = new RssFetcher();
+  const openApiFetcher = new OpenApiFetcher();
+  const fetcher = {
+    fetchSource: (source: any) => {
+      if (source.type === 'rss') return rssFetcher.fetchSource(source);
+      if (source.type === 'api') return openApiFetcher.fetchSource(source);
+      return Promise.resolve([]);
+    }
+  };
+  const fetchEnabledSources = new FetchEnabledSourcesUseCase(sourceRepo, jobPostingRepo, fetcher);
 
   return {
     repos: {
@@ -67,7 +88,9 @@ export async function buildContainer() {
       settingsRepo,
       leadRepo,
       marketEventRepo,
-      trackedOpportunityRepo
+      trackedOpportunityRepo,
+      jobPostingRepo,
+      sourceRepo
     },
     usecases: {
       listJobs: new ListJobsForEmployee(jobRepo),
@@ -90,10 +113,15 @@ export async function buildContainer() {
       addTrackedOpportunity: new AddTrackedOpportunity(trackedOpportunityRepo),
       listTrackedOpportunities: new ListTrackedOpportunities(trackedOpportunityRepo),
       openTrackedOpportunity: new OpenTrackedOpportunity(trackedOpportunityRepo),
-      updateTrackedOpportunity: new UpdateTrackedOpportunity(trackedOpportunityRepo)
+      updateTrackedOpportunity: new UpdateTrackedOpportunity(trackedOpportunityRepo),
+      listJobPostings: new ListJobPostingsUseCase(jobPostingRepo),
+      fetchJobSources: fetchEnabledSources,
+      importManualPosting: new ImportManualPostingUseCase(jobPostingRepo),
+      importCsvPosting: new ImportCsvUseCase(jobPostingRepo)
     },
     adapters: {
-      fakeApi
+      fakeApi,
+      jobOffersSync: new JobOffersSync(fetchEnabledSources)
     }
   };
 }

@@ -13,6 +13,7 @@ import '../pages/settings-page';
 import '../pages/calendar-page';
 import '../pages/market-page';
 import '../pages/opportunities-page';
+import '../pages/job-offers-page';
 
 import { Router } from '@vaadin/router';
 
@@ -23,6 +24,7 @@ export function createRouter(outlet: Element) {
     { path: '/dashboard', component: 'home-page' },
     { path: '/calendar', component: 'calendar-page' },
     { path: '/market', component: 'market-page' },
+    { path: '/offers', component: 'job-offers-page' },
     { path: '/jobs', component: 'jobs-page' },
     { path: '/jobs/:id', component: 'job-detail-page' },
     { path: '/jobs/:id/evidence', component: 'evidence-page' },
